@@ -51,6 +51,8 @@ jobs:
           CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
           alioth_defconfig
 
+          export LD=ld.lld
+
         make -j$(nproc) O=out \
           ARCH=arm64 \
           CC=clang \
