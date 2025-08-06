@@ -1,5 +1,5 @@
-[submodule "KernelSU‑Next"]
-	path = KernelSU‑Next
+[submodule "KernelSU-Next"]
+	path = KernelSU-Next
 	url = https://github.com/KernelSU-Next/KernelSU-Next
 [submodule "anykernel"]
 	path = anykernel
