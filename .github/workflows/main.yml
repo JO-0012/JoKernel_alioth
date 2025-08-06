@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - name: Checkout Kernel Source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
 
@@ -70,7 +70,7 @@ jobs:
         zip -r9 ../JoKernel-alioth.zip *
 
     - name: Upload kernel zip
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: JoKernel-alioth
         path: JoKernel-alioth.zip
