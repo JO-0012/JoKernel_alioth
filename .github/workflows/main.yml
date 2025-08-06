@@ -1,0 +1,76 @@
+name: Build Kernel for alioth with KernelSU
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Kernel Source
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Set up environment
+      run: |
+        sudo apt update
+        sudo apt install -y bc bison build-essential ccache curl flex git libncurses-dev libssl-dev \
+                            python3 python3-pip unzip zip zlib1g-dev lld wget
+
+    - name: Clone Clang
+      run: |
+        mkdir -p clang
+        cd clang
+        wget https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250803-release/Clang-22.0.0git-20250803.tar.gz
+        tar -xf Clang-22.0.0git-20250803.tar.gz
+        cd ..
+
+    - name: Set environment variables
+      run: |
+        echo "CLANG_PATH=$(pwd)/clang" >> $GITHUB_ENV
+        echo "KERNELSU_PATH=$(pwd)/KernelSU-Next" >> $GITHUB_ENV
+        echo "PATH=$(pwd)/clang/bin:$PATH" >> $GITHUB_ENV
+
+    - name: Make defconfig
+      run: |
+        make O=out CC=clang vendor/xiaomi/alioth.config
+
+    - name: Enable KernelSU in defconfig
+      run: |
+        echo "CONFIG_KERNELSU=y" >> arch/arm64/configs/alioth_defconfig
+
+    - name: Build kernel
+      run: |
+        make -j$(nproc) O=out \
+          ARCH=arm64 \
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          alioth_defconfig
+
+        make -j$(nproc) O=out \
+          ARCH=arm64 \
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+
+    - name: Copy compiled images
+      run: |
+        mkdir -p anykernel
+        cp out/arch/arm64/boot/Image.gz anykernel/
+        cp out/arch/arm64/boot/dtb anykernel/
+
+    - name: Zip AnyKernel3
+      run: |
+        cd anykernel
+        zip -r9 ../JoKernel-alioth.zip *
+
+    - name: Upload kernel zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: JoKernel-alioth
+        path: JoKernel-alioth.zip
