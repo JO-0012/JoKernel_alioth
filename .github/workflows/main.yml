@@ -35,7 +35,7 @@ jobs:
 
     - name: Make defconfig
       run: |
-        make O=out CC=clang alioth_defconfig
+        make O=out CC=clang ARCH=arm64 alioth_defconfig
 
     - name: Enable KernelSU in defconfig
       run: |
