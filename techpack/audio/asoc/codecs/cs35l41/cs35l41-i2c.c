@@ -10,6 +10,15 @@
  * published by the Free Software Foundation.
  *
  */
+static struct i2c_driver cs35l41_i2c_driver = {
+  .driver = {
+    .name = "cs35l41",
+    .of_match_table = of_match_ptr(cs35l41_of_match),
+  },
+  .probe = cs35l41_probe,
+  .remove = cs35l41_remove,
+  .id_table = cs35l41_i2c_id,
+};
 
 #include <linux/module.h>
 #include <linux/moduleparam.h>
