@@ -56,6 +56,9 @@ jobs:
           CROSS_COMPILE=aarch64-linux-gnu- \
           CROSS_COMPILE_ARM32=arm-linux-gnueabi-
 
+    - name: Check for DTB files
+      run: ls -lh out/arch/arm64/boot/dts/qcom/*.dtb || echo "No DTB files found"
+
     - name: Copy compiled images
       run: |
         mkdir -p anykernel
