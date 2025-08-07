@@ -1319,7 +1319,7 @@ endif
 ifneq "$(srctree)" ".."
 include/config/auto.conf: FORCE
 endif
-ifneq "$(CC)" "gcc"
+ifneq "$(CC)" "clang"
 include/config/auto.conf: FORCE
 endif
 ifneq "$(CC_VERSION_TEXT)" "clang version 20.1.8"
