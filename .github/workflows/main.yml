@@ -55,6 +55,7 @@ jobs:
           CLANG_TRIPLE=aarch64-linux-gnu- \
           CROSS_COMPILE=aarch64-linux-gnu- \
           CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          LOCALVERSION="-JoKernel-v1.0-by-Jo"
 
     - name: Check DTB outputs
       run: |
