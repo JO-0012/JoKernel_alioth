@@ -65,7 +65,7 @@ jobs:
       run: |
         mkdir -p anykernel
         cp out/arch/arm64/boot/Image.gz anykernel/
-        cp out/arch/arm64/boot/dtb anykernel/
+        cp out/arch/arm64/boot/dts/vendor/qcom/alioth-sm8250-overlay.dtb anykernel/dtb
 
     - name: Zip AnyKernel3
       run: |
