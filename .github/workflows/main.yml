@@ -36,6 +36,7 @@ jobs:
     - name: Disable VDSO32 in defconfig
       run: |
         scripts/config --file out/.config -d CONFIG_COMPAT_VDSO
+        scripts/config --file out/.config -d CONFIG_ARM64_VDSO32
         make O=out olddefconfig
 
     - name: Build Kernel
