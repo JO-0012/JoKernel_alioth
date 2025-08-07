@@ -33,6 +33,10 @@ jobs:
         echo "KERNELSU_PATH=$(pwd)/KernelSU-Next" >> $GITHUB_ENV
         echo "PATH=$(pwd)/clang/bin:$PATH" >> $GITHUB_ENV
 
+    - name: Make defconfig
+      run: |
+        make O=out ARCH=arm64 CC=clang alioth_defconfig
+
     - name: Build kernel
       run: |
         make -j$(nproc) O=out \
