@@ -1,76 +1,55 @@
-name: Build Kernel for alioth with KernelSU
+name: Build JoKernel for alioth
+on: push: branches: - main workflow_dispatch:
+jobs: build: runs-on: ubuntu-latest
+steps:
+- name: Checkout Kernel Source
+  uses: actions/checkout@v4
+  with:
+    submodules: true
 
-on:
-  workflow_dispatch:
+- name: Setup KernelSU
+  run: |
+    echo "Using KernelSU from source folder"
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+- name: Install Dependencies
+  run: |
+    sudo apt update
+    sudo apt install -y git wget curl build-essential bc bison flex libssl-dev make libc6-dev libncurses5-dev clang lld
 
-    steps:
-    - name: Checkout Kernel Source
-      uses: actions/checkout@v4
-      with:
-        submodules: true
+- name: Clone Clang
+  run: |
+    mkdir clang
+    wget -qO- https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250803-release/Clang-22.0.0git-20250803.tar.gz | tar -xz -C clang
 
-    - name: Set up environment
-      run: |
-        sudo apt update
-        sudo apt install -y bc bison build-essential ccache curl flex git libncurses-dev libssl-dev \
-                            python3 python3-pip unzip zip zlib1g-dev lld wget
+- name: Build Kernel
+  run: |
+    export PATH="$(pwd)/clang/bin:$PATH"
+    export ARCH=arm64
+    export SUBARCH=arm64
+    make O=out alioth_defconfig
+    make -j$(nproc) O=out \
+      CC=clang \
+      LD=ld.lld \
+      AR=llvm-ar \
+      NM=llvm-nm \
+      OBJCOPY=llvm-objcopy \
+      OBJDUMP=llvm-objdump \
+      STRIP=llvm-strip \
+      CLANG_TRIPLE=aarch64-linux-gnu- \
+      CROSS_COMPILE=aarch64-linux-gnu- \
+      CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+      Image.gz
 
-    - name: Clone Clang
-      run: |
-        mkdir -p clang
-        cd clang
-        wget https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250803-release/Clang-22.0.0git-20250803.tar.gz
-        tar -xf Clang-22.0.0git-20250803.tar.gz
-        cd ..
+- name: Prepare Flashable ZIP
+  run: |
+    git clone https://github.com/osm0sis/AnyKernel3 -b master anykernel
+    cp out/arch/arm64/boot/Image.gz anykernel/
+    cd anykernel
+    zip -r9 ../JoKernel-alioth.zip *
 
-    - name: Set environment variables
-      run: |
-        echo "CLANG_PATH=$(pwd)/clang" >> $GITHUB_ENV
-        echo "KERNELSU_PATH=$(pwd)/KernelSU-Next" >> $GITHUB_ENV
-        echo "PATH=$(pwd)/clang/bin:$PATH" >> $GITHUB_ENV
+- name: Upload Flashable ZIP
+  uses: actions/upload-artifact@v4
+  with:
+    name: JoKernel-alioth
+    path: JoKernel-alioth.zip
 
-    - name: Make defconfig
-      run: |
-        make O=out ARCH=arm64 CC=clang alioth_defconfig
-
-    - name: Enable QCOM_SMEM
-      run: |
-        echo "CONFIG_QCOM_SMEM=y" >> out/.config
-        make O=out ARCH=arm64 CC=clang olddefconfig   
-
-    - name: Build kernel and dtbs
-      run: |
-        export LD=ld.lld
-        make -j$(nproc) O=out \
-          ARCH=arm64 \
-          CC=clang \
-          CLANG_TRIPLE=aarch64-linux-gnu- \
-          CROSS_COMPILE=aarch64-linux-gnu- \
-          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-          Image.gz dtbs
-
-    - name: Check build outputs
-      run: |
-        ls -lh out/arch/arm64/boot/dts/ || echo "No DTBs there"
-        ls -lh out/arch/arm64/boot/ || echo "No boot files"
-
-    - name: Copy compiled images
-      run: |
-        mkdir -p anykernel
-        cp out/arch/arm64/boot/Image.gz anykernel/
-        cp $(find out/arch/arm64/boot/dts/ -name "*alioth*.dtb" | head -n1) anykernel/dtb || echo "DTB not found"
-
-    - name: Zip AnyKernel3
-      run: |
-        cd anykernel
-        zip -r9 ../JoKernel-alioth.zip *
-
-    - name: Upload kernel zip
-      uses: actions/upload-artifact@v4
-      with:
-        name: JoKernel-alioth
-        path: JoKernel-alioth.zip
