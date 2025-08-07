@@ -1,9 +1,6 @@
-name: Build JoKernel for alioth
+name: Build Kernel for alioth with KernelSU
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
@@ -16,54 +13,53 @@ jobs:
       with:
         submodules: true
 
-    - name: Install Dependencies
+    - name: Set up environment
       run: |
         sudo apt update
-        sudo apt install -y git wget curl build-essential bc bison flex libssl-dev make libc6-dev libncurses5-dev clang lld
+        sudo apt install -y bc bison build-essential ccache curl flex git libncurses-dev libssl-dev \
+                            python3 python3-pip unzip zip zlib1g-dev lld wget
 
     - name: Clone Clang
       run: |
-        mkdir clang
+        mkdir -p clang
         wget -qO- https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250803-release/Clang-22.0.0git-20250803.tar.gz | tar -xz -C clang
 
-    - name: Generate Default Defconfig
+    - name: Set environment variables
       run: |
-        export PATH="$(pwd)/clang/bin:$PATH"
-        export ARCH=arm64
-        export SUBARCH=arm64
-        make O=out alioth_defconfig
+        echo "CLANG_PATH=$(pwd)/clang" >> $GITHUB_ENV
+        echo "KERNELSU_PATH=$(pwd)/KernelSU-Next" >> $GITHUB_ENV
+        echo "PATH=$(pwd)/clang/bin:$PATH" >> $GITHUB_ENV
 
-    - name: Disable VDSO32 in defconfig
+    - name: Make defconfig
       run: |
-        scripts/config --file out/.config -d CONFIG_COMPAT_VDSO
-        scripts/config --file out/.config -d CONFIG_ARM64_VDSO32
-        make O=out olddefconfig
+        make O=out ARCH=arm64 CC=clang alioth_defconfig
 
-    - name: Build Kernel
+    - name: Build kernel
       run: |
-        export PATH="$(pwd)/clang/bin:$PATH"
-        export ARCH=arm64
-        export SUBARCH=arm64
         make -j$(nproc) O=out \
+          ARCH=arm64 \
           CC=clang \
-          LD=ld.lld \
-          AR=llvm-ar \
-          NM=llvm-nm \
-          OBJCOPY=llvm-objcopy \
-          OBJDUMP=llvm-objdump \
-          STRIP=llvm-strip \
           CLANG_TRIPLE=aarch64-linux-gnu- \
           CROSS_COMPILE=aarch64-linux-gnu- \
           CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-          Image.gz
+          alioth_defconfig
 
-    - name: Prepare Flashable ZIP
+    - name: Check DTB outputs
+      run: |
+        ls -lh out/arch/arm64/boot/dts/qcom/ || echo "No DTBs there"
+        ls -lh out/arch/arm64/boot/ || echo "No boot files"
+
+    - name: Copy compiled images
+      run: |
+        mkdir -p anykernel
+        cp out/arch/arm64/boot/Image.gz anykernel/
+
+    - name: Zip AnyKernel3
       run: |
         cd anykernel
-        cp ../out/arch/arm64/boot/Image.gz ./
         zip -r9 ../JoKernel-alioth.zip *
 
-    - name: Upload Flashable ZIP
+    - name: Upload kernel zip
       uses: actions/upload-artifact@v4
       with:
         name: JoKernel-alioth
