@@ -37,7 +37,7 @@ jobs:
       run: |
         make O=out ARCH=arm64 CC=clang alioth_defconfig
 
-    - name: Build kernel
+    - name: Build DTBs
       run: |
         make -j$(nproc) O=out \
           ARCH=arm64 \
@@ -45,10 +45,11 @@ jobs:
           CLANG_TRIPLE=aarch64-linux-gnu- \
           CROSS_COMPILE=aarch64-linux-gnu- \
           CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-          alioth_defconfig
+          dtbs
 
-          export LD=ld.lld
-
+    - name: Build kernel
+      run: |
+        export LD=ld.lld
         make -j$(nproc) O=out \
           ARCH=arm64 \
           CC=clang \
@@ -58,14 +59,14 @@ jobs:
 
     - name: Check DTB outputs
       run: |
-        ls -lh out/arch/arm64/boot/dts/qcom/ || echo "No DTBs there"
+        ls -lh out/arch/arm64/boot/dts/ || echo "No DTBs there"
         ls -lh out/arch/arm64/boot/ || echo "No boot files"
-    
+
     - name: Copy compiled images
       run: |
         mkdir -p anykernel
         cp out/arch/arm64/boot/Image.gz anykernel/
-        cp out/arch/arm64/boot/dts/vendor/qcom/alioth-sm8250-overlay.dtb anykernel/dtb
+        cp $(find out/arch/arm64/boot/dts/ -name "*alioth*.dtb" | head -n1) anykernel/dtb || echo "DTB not found"
 
     - name: Zip AnyKernel3
       run: |
