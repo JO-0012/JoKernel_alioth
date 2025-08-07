@@ -22,7 +22,10 @@ jobs:
     - name: Clone Clang
       run: |
         mkdir -p clang
-        wget -qO- https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250803-release/Clang-22.0.0git-20250803.tar.gz | tar -xz -C clang
+        cd clang
+        wget https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250803-release/Clang-22.0.0git-20250803.tar.gz
+        tar -xf Clang-22.0.0git-20250803.tar.gz
+        cd ..
 
     - name: Set environment variables
       run: |
@@ -44,11 +47,20 @@ jobs:
           CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
           alioth_defconfig
 
+          export LD=ld.lld
+
+        make -j$(nproc) O=out \
+          ARCH=arm64 \
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+
     - name: Check DTB outputs
       run: |
         ls -lh out/arch/arm64/boot/dts/qcom/ || echo "No DTBs there"
         ls -lh out/arch/arm64/boot/ || echo "No boot files"
-
+    
     - name: Copy compiled images
       run: |
         mkdir -p anykernel
