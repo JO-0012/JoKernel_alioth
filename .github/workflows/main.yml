@@ -1,55 +1,61 @@
 name: Build JoKernel for alioth
-on: push: branches: - main workflow_dispatch:
-jobs: build: runs-on: ubuntu-latest
-steps:
-- name: Checkout Kernel Source
-  uses: actions/checkout@v4
-  with:
-    submodules: true
 
-- name: Setup KernelSU
-  run: |
-    echo "Using KernelSU from source folder"
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
-- name: Install Dependencies
-  run: |
-    sudo apt update
-    sudo apt install -y git wget curl build-essential bc bison flex libssl-dev make libc6-dev libncurses5-dev clang lld
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-- name: Clone Clang
-  run: |
-    mkdir clang
-    wget -qO- https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250803-release/Clang-22.0.0git-20250803.tar.gz | tar -xz -C clang
+    steps:
+    - name: Checkout Kernel Source
+      uses: actions/checkout@v4
+      with:
+        submodules: true
 
-- name: Build Kernel
-  run: |
-    export PATH="$(pwd)/clang/bin:$PATH"
-    export ARCH=arm64
-    export SUBARCH=arm64
-    make O=out alioth_defconfig
-    make -j$(nproc) O=out \
-      CC=clang \
-      LD=ld.lld \
-      AR=llvm-ar \
-      NM=llvm-nm \
-      OBJCOPY=llvm-objcopy \
-      OBJDUMP=llvm-objdump \
-      STRIP=llvm-strip \
-      CLANG_TRIPLE=aarch64-linux-gnu- \
-      CROSS_COMPILE=aarch64-linux-gnu- \
-      CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-      Image.gz
+    - name: Setup KernelSU
+      run: echo "Using KernelSU from source folder"
 
-- name: Prepare Flashable ZIP
-  run: |
-    git clone https://github.com/osm0sis/AnyKernel3 -b master anykernel
-    cp out/arch/arm64/boot/Image.gz anykernel/
-    cd anykernel
-    zip -r9 ../JoKernel-alioth.zip *
+    - name: Install Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y git wget curl build-essential bc bison flex libssl-dev make libc6-dev libncurses5-dev clang lld
 
-- name: Upload Flashable ZIP
-  uses: actions/upload-artifact@v4
-  with:
-    name: JoKernel-alioth
-    path: JoKernel-alioth.zip
+    - name: Clone Clang
+      run: |
+        mkdir clang
+        wget -qO- https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250803-release/Clang-22.0.0git-20250803.tar.gz | tar -xz -C clang
 
+    - name: Build Kernel
+      run: |
+        export PATH="$(pwd)/clang/bin:$PATH"
+        export ARCH=arm64
+        export SUBARCH=arm64
+        make O=out alioth_defconfig
+        make -j$(nproc) O=out \
+          CC=clang \
+          LD=ld.lld \
+          AR=llvm-ar \
+          NM=llvm-nm \
+          OBJCOPY=llvm-objcopy \
+          OBJDUMP=llvm-objdump \
+          STRIP=llvm-strip \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          Image.gz
+
+    - name: Prepare Flashable ZIP
+      run: |
+        cp out/arch/arm64/boot/Image.gz anykernel/
+        cd anykernel
+        zip -r9 ../JoKernel-alioth.zip *
+
+    - name: Upload Flashable ZIP
+      uses: actions/upload-artifact@v4
+      with:
+        name: JoKernel-alioth
+        path: JoKernel-alioth.zip
