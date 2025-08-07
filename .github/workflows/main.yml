@@ -37,6 +37,11 @@ jobs:
       run: |
         make O=out ARCH=arm64 CC=clang alioth_defconfig
 
+    - name: Enable QCOM_SMEM
+      run: |
+        echo "CONFIG_QCOM_SMEM=y" >> out/.config
+        make O=out ARCH=arm64 CC=clang olddefconfig   
+
     - name: Build kernel and dtbs
       run: |
         export LD=ld.lld
