@@ -16,9 +16,6 @@ jobs:
       with:
         submodules: true
 
-    - name: Setup KernelSU
-      run: echo "Using KernelSU from source folder"
-
     - name: Install Dependencies
       run: |
         sudo apt update
@@ -29,12 +26,23 @@ jobs:
         mkdir clang
         wget -qO- https://github.com/ZyCromerZ/Clang/releases/download/22.0.0git-20250803-release/Clang-22.0.0git-20250803.tar.gz | tar -xz -C clang
 
-    - name: Build Kernel
+    - name: Generate Default Defconfig
       run: |
         export PATH="$(pwd)/clang/bin:$PATH"
         export ARCH=arm64
         export SUBARCH=arm64
         make O=out alioth_defconfig
+
+    - name: Disable VDSO32 in defconfig
+      run: |
+        scripts/config --file out/.config -d CONFIG_COMPAT_VDSO
+        make O=out olddefconfig
+
+    - name: Build Kernel
+      run: |
+        export PATH="$(pwd)/clang/bin:$PATH"
+        export ARCH=arm64
+        export SUBARCH=arm64
         make -j$(nproc) O=out \
           CC=clang \
           LD=ld.lld \
@@ -50,8 +58,8 @@ jobs:
 
     - name: Prepare Flashable ZIP
       run: |
-        cp out/arch/arm64/boot/Image.gz anykernel/
         cd anykernel
+        cp ../out/arch/arm64/boot/Image.gz ./
         zip -r9 ../JoKernel-alioth.zip *
 
     - name: Upload Flashable ZIP
