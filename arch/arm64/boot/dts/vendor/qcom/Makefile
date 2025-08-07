@@ -552,3 +552,5 @@ endif # CONFIG_MACH_XIAOMI
 always		:= $(dtb-y)
 subdir-y	:= $(dts-dirs)
 clean-files    := *.dtb *.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM) += alioth-sm8250-overlay.dtb
